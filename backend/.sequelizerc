@@ -5,7 +5,8 @@ dotenv.config();
 const migrationEnv = process.env.MIGRATION_ENV || 'local';
 
 module.exports = {
-  config: path.resolve('src', 'config', 'config.json'),
+  // config: path.resolve('src', 'config', 'config.json'),
+  config: path.resolve('src/config/env.ts'),
   'models-path': path.resolve('src', 'models'),
   'migrations-path': path.resolve('src', 'migrations', migrationEnv),
 };
