@@ -101,11 +101,6 @@ export const apiPost = async <T>(
   config?: RequestConfig,
 ): Promise<T> => {
   const url = `${API_BASE_URL}${endpoint}`;
-  console.log('📤 POST Request:', {
-    url,
-    body: config?.body,
-    headers: getHeaders(config),
-  });
 
   try {
     const response = await fetch(url, {

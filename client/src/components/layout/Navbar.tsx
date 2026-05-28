@@ -1,6 +1,5 @@
 import { Dumbbell, LogOut } from 'lucide-react';
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Button';
 
@@ -10,8 +9,7 @@ import { Button } from '../ui/Button';
  */
 const Navbar = () => {
   const { user, logout } = useAuth();
-
-  console.log('user', user);
+  const navigate = useNavigate();
 
   /**
    * Extract user initials from name
@@ -32,6 +30,7 @@ const Navbar = () => {
     try {
       await logout();
       // Router will handle navigation after logout
+      navigate('/auth/sign-in');
     } catch (error) {
       console.error('Logout failed:', error);
     }
