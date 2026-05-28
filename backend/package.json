@@ -5,9 +5,17 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev src/server.ts",
-    "build": "tsc",
+    "build": "node esbuild-config/server.prod.mjs",
     "start": "node dist/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "migration:generate": "npx sequelize-cli migration:generate --name ",
+    "migration:apply": "npx sequelize-cli db:migrate",
+    "revert:recent:migration": "npx sequelize-cli db:migrate:undo",
+    "revert:all:migration": "npx sequelize-cli db:migrate:undo:all",
+    "create:superbase:migration": "npx node-pg-migrate create --migrations-dir=src/migrations/superbase",
+    "superbase:apply": "npx node-pg-migrate up --no-check-order --migrations-dir=src/migrations/superbase",
+    "superbase:force:apply": "npx node-pg-migrate up --force --migrations-dir=src/migrations/superbase",
+    "superbase:apply:single": "npx node-pg-migrate up --migrations-dir=src/migrations/superbase --name",
+    "revert:superbase:migration": "npx node-pg-migrate down --migrations-dir=src/migrations/superbase"
   },
   "keywords": [
     "gym",

@@ -1,9 +1,19 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model, Optional } from 'sequelize';
+import { UserType } from './types';
 import { sequelize } from '../config/database';
 
-// User Model
-export const User = sequelize.define(
-  'User',
+interface UserAttriutes extends Optional<UserType, 'id'> {}
+
+class UserModel extends Model<UserType, UserAttriutes> implements UserType {
+  public id?: string;
+  public email!: string;
+  public name!: string;
+  public password!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+UserModel.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -26,20 +36,22 @@ export const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    createdAt: {
+    created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
-    updatedAt: {
+    updated_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
   },
   {
+    sequelize,
+    modelName: 'UserModel',
     tableName: 'users',
-    timestamps: true,
+    underscored: true,
+    timestamps: false,
   },
 );
 
-// Export all models
-export default { User };
+export default UserModel;

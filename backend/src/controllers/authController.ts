@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { User } from '../models';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth';
 import { ApiResponse, AuthRequest } from '../types';
+import UserModel from '../models/user_models';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -16,7 +16,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await UserModel.findOne({ where: { email } });
     if (existingUser) {
       const response: ApiResponse<null> = {
         success: false,
@@ -29,14 +29,14 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await hashPassword(password);
 
     // Create user
-    const newUser = await User.create({
+    const newUser = await UserModel.create({
       name,
       email,
       password: hashedPassword,
     });
 
     // Generate token
-    const token = generateToken(newUser.getDataValue('id'));
+    const token = generateToken(newUser?.getDataValue('id') as string);
 
     const response: ApiResponse<any> = {
       success: true,
@@ -77,7 +77,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = await User.findOne({ where: { email } });
+    const user = await UserModel.findOne({ where: { email } });
     if (!user) {
       const response: ApiResponse<null> = {
         success: false,
@@ -100,7 +100,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate token
-    const token = generateToken(user.getDataValue('id'));
+    const token = generateToken(user?.getDataValue('id') as string);
 
     const response: ApiResponse<any> = {
       success: true,
@@ -161,7 +161,7 @@ export const refresh = async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = await User.findByPk(userId);
+    const user = await UserModel.findByPk(userId);
     if (!user) {
       const response: ApiResponse<null> = {
         success: false,
@@ -178,9 +178,9 @@ export const refresh = async (req: Request, res: Response) => {
       message: 'Token refreshed successfully',
       data: {
         user: {
-          id: user.getDataValue('id'),
-          email: user.getDataValue('email'),
-          name: user.getDataValue('name'),
+          id: user?.getDataValue('id'),
+          email: user?.getDataValue('email'),
+          name: user?.getDataValue('name'),
         },
         token,
       },
