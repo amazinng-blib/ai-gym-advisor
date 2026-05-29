@@ -1,10 +1,10 @@
-import React from 'react';
 import { useParams } from 'react-router-dom';
 import Login from '../components/Login';
 import Register from '../components/Register';
+import { useAuth } from '../hooks/useAuth';
 
 const Auth = () => {
-  const user = false; // Set to false to allow login/register or implement actual auth check
+  const { user } = useAuth(); // Set to false to allow login/register or implement actual auth check
   const { pathname } = useParams();
 
   return (

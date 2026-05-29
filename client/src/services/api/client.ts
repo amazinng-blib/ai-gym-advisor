@@ -28,7 +28,6 @@ const getHeaders = (config?: RequestConfig): Record<string, string> => {
   };
 
   const token = getAuthToken();
-  console.log('token', token);
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
