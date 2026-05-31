@@ -39,3 +39,17 @@ export interface ApiResponse<T> {
   error?: ApiError;
   isLoading: boolean;
 }
+
+export interface ProfileType {
+  id: string;
+  userId: string;
+  goal: string;
+  experience: string;
+  days_per_week: string;
+  session_length: string;
+  equipment: string;
+  injuries?: string;
+  preferred_split: string;
+  created_at?: string;
+  updated_at?: string;
+}

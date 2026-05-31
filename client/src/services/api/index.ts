@@ -1,6 +1,7 @@
 /**
  * API Services Index
  * Central export point for all API services
+ * Single entry point for importing API functions throughout the app
  */
 
 export {
@@ -20,3 +21,9 @@ export {
   isAuthenticated,
   getStoredUser,
 } from './authService';
+export {
+  saveUpdateProfile,
+  getProfileById,
+  getCurrentUserProfile,
+  getProfileByUserId,
+} from './profileService';

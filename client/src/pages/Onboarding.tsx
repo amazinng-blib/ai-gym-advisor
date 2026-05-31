@@ -1,11 +1,12 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Card from '../components/ui/Card';
 import Select from '../components/ui/Select';
 import { useState } from 'react';
 import Textarea from '../components/ui/Textarea';
 import { Button } from '../components/ui/Button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { saveUpdateProfile } from '../services/api';
 
 const goalOptions = [
   {
@@ -71,6 +72,7 @@ const splitOptions = [
 
 const Onboarding = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     goal: 'bulk',
@@ -83,6 +85,10 @@ const Onboarding = () => {
     preferredSplit: 'upper_lower',
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
   if (!user) {
     return <Navigate to="/auth/sign-in" replace />;
   }
@@ -91,7 +97,46 @@ const Onboarding = () => {
     return setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleQuestionaire = async () => {};
+  const handleQuestionaire = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      // Convert camelCase to snake_case for API
+      const profilePayload = {
+        goal: formData.goal,
+        experience: formData.experience,
+        days_per_week: formData.daysPerWeek,
+        session_length: formData.sessionLength,
+        equipment: formData.equipment,
+        injuries: formData.injuries || undefined,
+        preferred_split: formData.preferredSplit,
+      };
+
+      console.log('📝 Submitting profile data:', profilePayload);
+
+      const response = await saveUpdateProfile(profilePayload);
+
+      console.log('✅ Profile saved successfully:', response);
+      setSuccess(true);
+
+      // Redirect to home after successful submission
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Failed to save profile. Please try again.';
+      console.error('❌ Error saving profile:', err);
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen pt-24 px-6">
@@ -106,6 +151,25 @@ const Onboarding = () => {
           <p className="text-muted mb-6">
             Help us create the perfect plan for you
           </p>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 items-start">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2 items-start">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-green-800 text-sm">
+                Profile saved successfully! Redirecting...
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleQuestionaire} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <Select
@@ -115,6 +179,7 @@ const Onboarding = () => {
                 value={formData.goal}
                 onChange={(e) => updateFormData('goal', e.target.value)}
                 className="mb-4"
+                disabled={isLoading}
               />
               <Select
                 id="experience"
@@ -123,6 +188,7 @@ const Onboarding = () => {
                 value={formData.experience}
                 onChange={(e) => updateFormData('experience', e.target.value)}
                 className="mb-4"
+                disabled={isLoading}
               />
             </div>
 
@@ -134,6 +200,7 @@ const Onboarding = () => {
                 value={formData.daysPerWeek}
                 onChange={(e) => updateFormData('daysPerWeek', e.target.value)}
                 className="mb-4"
+                disabled={isLoading}
               />
               <Select
                 id="sessionLength"
@@ -144,6 +211,7 @@ const Onboarding = () => {
                   updateFormData('sessionLength', e.target.value)
                 }
                 className="mb-4"
+                disabled={isLoading}
               />
             </div>
 
@@ -154,6 +222,7 @@ const Onboarding = () => {
               value={formData.equipment}
               onChange={(e) => updateFormData('equipment', e.target.value)}
               className="mb-4"
+              disabled={isLoading}
             />
 
             <Select
@@ -163,6 +232,7 @@ const Onboarding = () => {
               value={formData.preferredSplit}
               onChange={(e) => updateFormData('preferredSplit', e.target.value)}
               className="mb-4"
+              disabled={isLoading}
             />
 
             <Textarea
@@ -172,11 +242,25 @@ const Onboarding = () => {
               value={formData.injuries}
               onChange={(e) => updateFormData('injuries', e.target.value)}
               className="mb-4"
+              disabled={isLoading}
             />
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" className="flex-1 gap-2">
-                Generate My Plan <ArrowRight className="w-4 h-4" />
+              <Button
+                type="submit"
+                className="flex-1 gap-2"
+                disabled={isLoading || success}
+              >
+                {isLoading ? (
+                  <>
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Generate My Plan <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </Button>
             </div>
           </form>
