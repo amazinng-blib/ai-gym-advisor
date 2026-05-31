@@ -1,0 +1,122 @@
+/\*\*
+
+- Profile Controller API Reference
+- Senior Dev Standard Implementation
+-
+- Authentication:
+- All endpoints require a valid JWT token in the Authorization header:
+- Authorization: Bearer <token>
+-
+- ==============================================================================
+- 1.  CREATE PROFILE
+- ==============================================================================
+- POST /api/profile
+-
+- Request Body:
+- {
+- "goal": "muscle-gain" | "fat-loss" | "maintenance" | "strength",
+- "experience": "beginner" | "intermediate" | "advanced",
+- "daysPerWeek": "3" | "4" | "5" | "6",
+- "sessionLength": "30" | "45" | "60" | "90",
+- "equipment": "dumbbells,barbell,cables",
+- "injuries": "lower back pain" (optional),
+- "preferredSplit": "ppl" | "upper-lower" | "full-body" | "bro-split"
+- }
+-
+- Success Response (201):
+- {
+- "success": true,
+- "message": "Profile created successfully",
+- "data": {
+-     "id": "uuid",
+-     "goal": "muscle-gain",
+-     "experience": "intermediate",
+-     "daysPerWeek": "4",
+-     "sessionLength": "60",
+-     "equipment": "dumbbells,barbell,cables",
+-     "injuries": null,
+-     "preferredSplit": "upper-lower"
+- }
+- }
+-
+- Error Response (400):
+- {
+- "success": false,
+- "message": "Invalid profile data",
+- "error": "goal must be one of: muscle-gain, fat-loss, maintenance, strength"
+- }
+-
+- ==============================================================================
+- 2.  GET PROFILE
+- ==============================================================================
+- GET /api/profile/:id
+-
+- Success Response (200):
+- {
+- "success": true,
+- "message": "Profile retrieved successfully",
+- "data": { ... }
+- }
+-
+- Error Response (404):
+- {
+- "success": false,
+- "message": "Profile not found"
+- }
+-
+- ==============================================================================
+- 3.  UPDATE PROFILE
+- ==============================================================================
+- PUT /api/profile/:id
+-
+- Request Body (same as create, all fields required):
+- {
+- "goal": "fat-loss",
+- "experience": "advanced",
+- ...
+- }
+-
+- Success Response (200):
+- {
+- "success": true,
+- "message": "Profile updated successfully",
+- "data": { ... }
+- }
+-
+- ==============================================================================
+- VALIDATION RULES
+- ==============================================================================
+-
+- Valid Goals: muscle-gain, fat-loss, maintenance, strength
+- Valid Experience: beginner, intermediate, advanced
+- Valid Days Per Week: 3, 4, 5, 6
+- Valid Session Length: 30, 45, 60, 90 (minutes)
+- Valid Splits: ppl, upper-lower, full-body, bro-split
+-
+- All fields are required except "injuries"
+- All string values are normalized to lowercase
+-
+- ==============================================================================
+- ERROR HANDLING
+- ==============================================================================
+-
+- 400 Bad Request: Missing or invalid field in request body
+- 401 Unauthorized: Missing or invalid JWT token
+- 403 Forbidden: Token expired or invalid
+- 404 Not Found: Profile does not exist
+- 500 Internal Server Error: Database or server error
+-
+- ==============================================================================
+- SENIOR DEV FEATURES
+- ==============================================================================
+-
+- ✓ Input validation with clear error messages
+- ✓ Authentication middleware (all routes protected)
+- ✓ Structured error responses using ApiResponse type
+- ✓ Logging for debugging and monitoring
+- ✓ TypeScript for type safety
+- ✓ Normalized data handling
+- ✓ Proper HTTP status codes
+- ✓ Clear separation of concerns (validation, controller, middleware)
+- ✓ Extensible architecture for future features
+  \*/

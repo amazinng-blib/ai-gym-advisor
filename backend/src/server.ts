@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectToDB } from './config/database';
+import './models/associations'; // Initialize model associations
 
 dotenv.config();
 

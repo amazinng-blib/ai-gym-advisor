@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev src/server.ts",
     "build": "node esbuild-config/server.prod.mjs",
-    "start": "node dist/server.js",
+    "start": "node dist/server.ts",
     "migration:generate": "npx sequelize-cli migration:generate --name ",
     "migration:apply": "npx sequelize-cli db:migrate",
     "revert:recent:migration": "npx sequelize-cli db:migrate:undo",

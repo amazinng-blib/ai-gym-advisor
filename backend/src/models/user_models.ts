@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { UserType } from './types';
 import { sequelize } from '../config/database';
+import { UserType } from '../types';
+import type ProfileModel from './profile_model';
 
 interface UserAttriutes extends Optional<UserType, 'id'> {}
 
@@ -11,6 +12,10 @@ class UserModel extends Model<UserType, UserAttriutes> implements UserType {
   public password!: string;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+
+  // Association properties (will be available after association setup)
+  public profiles?: ProfileModel[]; // User's profiles
+  public getProfiles?: () => Promise<ProfileModel[]>; // Lazy load profiles
 }
 
 UserModel.init(
