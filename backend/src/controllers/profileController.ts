@@ -382,7 +382,11 @@ export const getProfile = async (
       return;
     }
 
-    const profile = await ProfileModel.findByPk(id);
+    const profile = await ProfileModel.findOne({
+      where: {
+        userId: id,
+      },
+    });
 
     if (!profile) {
       const response: ApiResponse<null> = {
