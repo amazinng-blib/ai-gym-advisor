@@ -1,22 +1,13 @@
 /**
  * Profile Context
  * Manages profile state and provides profile-related operations
- * Follows Redux-like state management patterns for reliability
+ * Clean architecture: Uses useProfileLogic hook for business logic
  */
 
-import React, {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  saveUpdateProfile,
-  getCurrentUserProfile,
-} from '../services/api/profileService';
+import React, { createContext, useEffect, useMemo, useState } from 'react';
 import type { ProfileType } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { useProfileLogic } from '../hooks/useProfileLogic';
 
 /**
  * Profile context type definition
@@ -28,6 +19,8 @@ interface ProfileContextType {
   isSaving: boolean;
   error: string | null;
   hasProfile: boolean;
+  isEditing: boolean;
+  success: boolean;
   loadProfile: () => Promise<void>;
   saveProfile: (
     profileData: Partial<Omit<ProfileType, 'id' | 'userId'>>,
@@ -38,6 +31,13 @@ interface ProfileContextType {
   ) => Promise<void>;
   clearError: () => void;
   resetProfile: () => void;
+  setIsEditing: (value: boolean) => void;
+  setSuccess: (value: boolean) => void;
+  formData: Partial<Omit<ProfileType, 'id' | 'userId'>>;
+  setFormData: React.Dispatch<
+    React.SetStateAction<Partial<Omit<ProfileType, 'id' | 'userId'>>>
+  >;
+  handleFormdataChange: (field: keyof ProfileType, value: string) => void;
 }
 
 export const ProfileContext = createContext<ProfileContextType | undefined>(
@@ -50,165 +50,23 @@ interface ProfileProviderProps {
 
 /**
  * Profile Provider Component
- * Manages profile state and operations
+ * Wraps the app and provides profile context
  *
- * Senior dev practices:
- * - Lazy loads profile data when needed
- * - Handles partial updates efficiently
- * - Provides type-safe field updates
- * - Proper error handling and user feedback
- * - Memoized context value to prevent unnecessary re-renders
+ * Architecture:
+ * - Uses useProfileLogic hook for all business logic
+ * - Handles auth state changes and profile initialization
+ * - Provides memoized context value
  */
 export const ProfileProvider: React.FC<ProfileProviderProps> = ({
   children,
 }) => {
   const { user, isAuthenticated } = useAuth();
+  const [formData, setFormData] = useState<
+    Partial<Omit<ProfileType, 'id' | 'userId'>>
+  >({});
 
-  // State management
-  const [profile, setProfile] = useState<ProfileType | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  /**
-   * Load user's profile from API
-   * Only loads if user is authenticated and doesn't already have profile in state
-   */
-  const loadProfile = useCallback(async () => {
-    if (!user?.id || profile !== null) {
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      console.log(`[Profile] Loading profile for authenticated user`);
-      const response = await getCurrentUserProfile();
-
-      if (response.success && response.data) {
-        setProfile(response.data);
-        console.log('[Profile] Profile loaded successfully:', response.data);
-      }
-    } catch (err) {
-      // Profile might not exist yet, which is OK for new users
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load profile';
-
-      console.log(
-        '[Profile] Profile not found or error loading:',
-        errorMessage,
-      );
-      // Don't set error here since missing profile is expected for new users
-      setProfile(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, profile]);
-
-  /**
-   * Save or create profile
-   * Handles both initial creation and updates
-   */
-  const saveProfile = useCallback(
-    async (
-      profileData: Partial<Omit<ProfileType, 'id' | 'userId'>>,
-    ): Promise<ProfileType> => {
-      setIsSaving(true);
-      setError(null);
-
-      try {
-        console.log('[Profile] Saving profile data:', profileData);
-
-        const response = await saveUpdateProfile(profileData);
-
-        if (!response.success || !response.data) {
-          throw new Error(response.message || 'Failed to save profile');
-        }
-
-        setProfile(response.data);
-        console.log('[Profile] Profile saved successfully:', response.data);
-
-        return response.data;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to save profile';
-
-        console.error('[Profile] Error saving profile:', errorMessage);
-        setError(errorMessage);
-        throw err;
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [],
-  );
-
-  /**
-   * Update a single profile field
-   * Type-safe field updates with proper validation
-   * More efficient than full profile updates
-   */
-  const updateProfileField = useCallback(
-    async <K extends keyof ProfileType>(
-      field: K,
-      value: ProfileType[K],
-    ): Promise<void> => {
-      if (!profile) {
-        throw new Error('Profile not loaded. Cannot update field.');
-      }
-
-      // Optimistic update
-      const previousProfile = profile;
-      setProfile((prev) => (prev ? { ...prev, [field]: value } : null));
-
-      try {
-        console.log(`[Profile] Updating field ${String(field)}:`, value);
-
-        const response = await saveUpdateProfile({
-          [field]: value,
-        });
-
-        if (!response.success || !response.data) {
-          throw new Error(response.message || 'Failed to update profile field');
-        }
-
-        setProfile(response.data);
-        console.log('[Profile] Field updated successfully:', response.data);
-      } catch (err) {
-        // Rollback on error
-        setProfile(previousProfile);
-
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : `Failed to update ${String(field)}`;
-
-        console.error('[Profile] Error updating field:', errorMessage);
-        setError(errorMessage);
-        throw err;
-      }
-    },
-    [profile],
-  );
-
-  /**
-   * Clear error state
-   */
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  /**
-   * Reset profile state
-   * Useful for logout or resetting UI state
-   */
-  const resetProfile = useCallback(() => {
-    setProfile(null);
-    setError(null);
-    setIsLoading(false);
-    setIsSaving(false);
-  }, []);
+  // Use the profile logic hook for all business logic
+  const profileLogic = useProfileLogic(user?.id);
 
   /**
    * Initialize profile on auth state change
@@ -216,46 +74,68 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({
    */
   useEffect(() => {
     if (isAuthenticated && user?.id) {
-      loadProfile();
+      profileLogic.loadProfile();
     } else {
-      resetProfile();
+      profileLogic.resetProfile();
     }
-  }, [isAuthenticated, user?.id, loadProfile, resetProfile]);
+  }, [isAuthenticated, user?.id, profileLogic]);
 
   /**
    * Computed property: hasProfile
-   * Useful for conditional rendering
    */
-  const hasProfile = useMemo(() => profile !== null, [profile]);
+  const hasProfile = useMemo(
+    () => profileLogic.profile !== null,
+    [profileLogic.profile],
+  );
+
+  const handleFormdataChange = (field: keyof ProfileType, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   /**
    * Memoize context value to prevent unnecessary re-renders
-   * Only recalculates when actual values change
    */
   const value: ProfileContextType = useMemo(
     () => ({
-      profile,
-      isLoading,
-      isSaving,
-      error,
+      profile: profileLogic.profile,
+      isLoading: profileLogic.isLoading,
+      isSaving: profileLogic.isSaving,
+      error: profileLogic.error,
       hasProfile,
-      loadProfile,
-      saveProfile,
-      updateProfileField,
-      clearError,
-      resetProfile,
+      isEditing: profileLogic.isEditing,
+      success: profileLogic.success,
+      loadProfile: profileLogic.loadProfile,
+      saveProfile: profileLogic.saveProfile,
+      updateProfileField: profileLogic.updateProfileField,
+      clearError: profileLogic.clearError,
+      resetProfile: profileLogic.resetProfile,
+      setIsEditing: profileLogic.setIsEditing,
+      setSuccess: profileLogic.setSuccess,
+      formData: formData,
+      setFormData: setFormData,
+      handleFormdataChange,
     }),
     [
-      profile,
-      isLoading,
-      isSaving,
-      error,
+      profileLogic.profile,
+      profileLogic.isLoading,
+      profileLogic.isSaving,
+      profileLogic.error,
+      profileLogic.isEditing,
+      profileLogic.success,
+      profileLogic.loadProfile,
+      profileLogic.saveProfile,
+      profileLogic.updateProfileField,
+      profileLogic.clearError,
+      profileLogic.resetProfile,
+      profileLogic.setIsEditing,
+      profileLogic.setSuccess,
       hasProfile,
-      loadProfile,
-      saveProfile,
-      updateProfileField,
-      clearError,
-      resetProfile,
+      formData,
+      setFormData,
+      handleFormdataChange,
     ],
   );
 

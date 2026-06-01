@@ -1,12 +1,12 @@
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
+import { useOnboardingLogic } from '../hooks/useOnboardingLogic';
 import Card from '../components/ui/Card';
 import Select from '../components/ui/Select';
-import { useState } from 'react';
 import Textarea from '../components/ui/Textarea';
 import { Button } from '../components/ui/Button';
 import { ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
-import { saveUpdateProfile } from '../services/api';
 
 const goalOptions = [
   {
@@ -72,30 +72,26 @@ const splitOptions = [
 
 const Onboarding = () => {
   const { user } = useAuth();
+  const { saveProfile, isSaving } = useProfile();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    goal: 'bulk',
-    experience: 'intermediate',
-    daysPerWeek: '4',
-    sessionLength: '60',
-    equipment: 'full_gym',
-    // split: 'upper_lower',
-    injuries: '',
-    preferredSplit: 'upper_lower',
-  });
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  // Use the onboarding logic hook for form management
+  const {
+    formData,
+    isLoading,
+    error,
+    success,
+    updateFormField,
+    clearError,
+    setSuccess,
+    setIsLoading,
+    setError,
+    convertFormDataToPayload,
+  } = useOnboardingLogic();
 
   if (!user) {
     return <Navigate to="/auth/sign-in" replace />;
   }
-
-  const updateFormData = (field: string, value: string) => {
-    return setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
   const handleQuestionaire = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -104,22 +100,14 @@ const Onboarding = () => {
     setSuccess(false);
 
     try {
-      // Convert camelCase to snake_case for API
-      const profilePayload = {
-        goal: formData.goal,
-        experience: formData.experience,
-        days_per_week: formData.daysPerWeek,
-        session_length: formData.sessionLength,
-        equipment: formData.equipment,
-        injuries: formData.injuries || undefined,
-        preferred_split: formData.preferredSplit,
-      };
-
+      // Convert form data to API payload
+      const profilePayload = convertFormDataToPayload();
       console.log('📝 Submitting profile data:', profilePayload);
 
-      const response = await saveUpdateProfile(profilePayload);
+      // Use context's saveProfile method
+      await saveProfile(profilePayload);
 
-      console.log('✅ Profile saved successfully:', response);
+      console.log('✅ Profile saved successfully');
       setSuccess(true);
 
       // Redirect to home after successful submission
@@ -177,18 +165,18 @@ const Onboarding = () => {
                 label="What's Your Primary Goal"
                 options={goalOptions}
                 value={formData.goal}
-                onChange={(e) => updateFormData('goal', e.target.value)}
+                onChange={(e) => updateFormField('goal', e.target.value)}
                 className="mb-4"
-                disabled={isLoading}
+                disabled={isLoading || isSaving}
               />
               <Select
                 id="experience"
                 label="Training Experience Level"
                 options={experienceOptions}
                 value={formData.experience}
-                onChange={(e) => updateFormData('experience', e.target.value)}
+                onChange={(e) => updateFormField('experience', e.target.value)}
                 className="mb-4"
-                disabled={isLoading}
+                disabled={isLoading || isSaving}
               />
             </div>
 
@@ -198,9 +186,9 @@ const Onboarding = () => {
                 label="How Many Days Per Week"
                 options={daysOptions}
                 value={formData.daysPerWeek}
-                onChange={(e) => updateFormData('daysPerWeek', e.target.value)}
+                onChange={(e) => updateFormField('daysPerWeek', e.target.value)}
                 className="mb-4"
-                disabled={isLoading}
+                disabled={isLoading || isSaving}
               />
               <Select
                 id="sessionLength"
@@ -208,10 +196,10 @@ const Onboarding = () => {
                 options={sessionOptions}
                 value={formData.sessionLength}
                 onChange={(e) =>
-                  updateFormData('sessionLength', e.target.value)
+                  updateFormField('sessionLength', e.target.value)
                 }
                 className="mb-4"
-                disabled={isLoading}
+                disabled={isLoading || isSaving}
               />
             </div>
 
@@ -220,9 +208,9 @@ const Onboarding = () => {
               label="Preferred Equipment"
               options={equipmentOptions}
               value={formData.equipment}
-              onChange={(e) => updateFormData('equipment', e.target.value)}
+              onChange={(e) => updateFormField('equipment', e.target.value)}
               className="mb-4"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
 
             <Select
@@ -230,9 +218,11 @@ const Onboarding = () => {
               label="Preferred Workout Split"
               options={splitOptions}
               value={formData.preferredSplit}
-              onChange={(e) => updateFormData('preferredSplit', e.target.value)}
+              onChange={(e) =>
+                updateFormField('preferredSplit', e.target.value)
+              }
               className="mb-4"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
 
             <Textarea
@@ -240,18 +230,18 @@ const Onboarding = () => {
               label="Any Injuries or Limitations(optional)"
               rows={3}
               value={formData.injuries}
-              onChange={(e) => updateFormData('injuries', e.target.value)}
+              onChange={(e) => updateFormField('injuries', e.target.value)}
               className="mb-4"
-              disabled={isLoading}
+              disabled={isLoading || isSaving}
             />
 
             <div className="flex gap-3 pt-2">
               <Button
                 type="submit"
                 className="flex-1 gap-2"
-                disabled={isLoading || success}
+                disabled={isLoading || isSaving || success}
               >
-                {isLoading ? (
+                {isLoading || isSaving ? (
                   <>
                     <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                     Saving...

@@ -2,18 +2,37 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Card from '../components/ui/Card';
 import Select from '../components/ui/Select';
-import { useState, useEffect } from 'react';
 import Textarea from '../components/ui/Textarea';
 import { Button } from '../components/ui/Button';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import { saveUpdateProfile } from '../services/api';
 import type { ProfileType } from '../types';
+import { useProfile } from '../hooks/useProfile';
 
 const goalOptions = [
-  { value: 'muscle-gain', label: 'Build Muscle (Muscle Gain)' },
-  { value: 'fat-loss', label: 'Lose Fat (Fat Loss)' },
-  { value: 'maintenance', label: 'Maintain Current Physique' },
-  { value: 'strength', label: 'Increase Strength' },
+  {
+    value: 'bulk',
+    label: 'Build Muscle (Bulk)',
+  },
+  {
+    value: 'cut',
+    label: 'Lose Fat (Cut)',
+  },
+  {
+    value: 'recomp',
+    label: 'Body Recomposition (Recomp)',
+  },
+  {
+    value: 'maintain',
+    label: 'Maintain Current Physique',
+  },
+  {
+    value: 'strength',
+    label: 'Increase Strength',
+  },
+  {
+    value: 'endurance',
+    label: 'Improve Endurance',
+  },
 ];
 
 const experienceOptions = [
@@ -23,6 +42,7 @@ const experienceOptions = [
 ];
 
 const daysOptions = [
+  { value: '2', label: '2 days per week' },
   { value: '3', label: '3 days per week' },
   { value: '4', label: '4 days per week' },
   { value: '5', label: '5 days per week' },
@@ -37,91 +57,45 @@ const sessionOptions = [
 ];
 
 const equipmentOptions = [
-  { value: 'full-gym', label: 'Full Gym Access' },
+  { value: 'full_gym', label: 'Full Gym Access' },
   { value: 'home', label: 'Home Gym' },
   { value: 'dumbbells', label: 'Dumbbells Only' },
 ];
 
 const splitOptions = [
+  { value: 'full_body', label: 'Full Body' },
+  { value: 'upper_lower', label: 'Upper/Lower Split' },
   { value: 'ppl', label: 'Push/Pull/Legs' },
-  { value: 'upper-lower', label: 'Upper/Lower Split' },
-  { value: 'full-body', label: 'Full Body' },
-  { value: 'bro-split', label: 'Bro Split' },
+  { value: 'custom', label: 'Let AI Decide' },
 ];
 
 const Profile = () => {
-  const { user, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const {
+    error,
+    isLoading,
+    isSaving,
+    profile,
+    saveProfile,
+    clearError,
+    isEditing,
+    setIsEditing,
+    success,
+    handleFormdataChange,
+    formData,
+  } = useProfile();
 
-  const [profile, setProfile] = useState<ProfileType | null>(null);
-  const [formData, setFormData] = useState<Partial<ProfileType>>({});
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    // In a real app, you'd fetch the profile here
-    // For now, we'll initialize with empty data
-    if (user) {
-      setFormData({
-        goal: '',
-        experience: '',
-        days_per_week: '',
-        session_length: '',
-        equipment: '',
-        injuries: '',
-        preferred_split: '',
-      });
-    }
-  }, [user]);
-
-  if (!user && !isLoading) {
+  if (!isAuthenticated && !isLoading) {
     return <Navigate to="/auth/sign-in" replace />;
   }
 
-  const updateFormData = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSaveProfile = async () => {
-    setIsSaving(true);
-    setError(null);
-    setSuccess(false);
-
+  const handleSaveProfile = async (
+    profileData: Partial<Omit<ProfileType, 'id' | 'userId'>>,
+  ) => {
     try {
-      // Build payload with only updated fields
-      const payload: Record<string, string> = {};
-
-      if (formData.goal) payload.goal = formData.goal;
-      if (formData.experience) payload.experience = formData.experience;
-      if (formData.days_per_week)
-        payload.days_per_week = formData.days_per_week;
-      if (formData.session_length)
-        payload.session_length = formData.session_length;
-      if (formData.equipment) payload.equipment = formData.equipment;
-      if (formData.injuries) payload.injuries = formData.injuries;
-      if (formData.preferred_split)
-        payload.preferred_split = formData.preferred_split;
-
-      console.log('📝 Updating profile with:', payload);
-
-      const response = await saveUpdateProfile(payload);
-
-      console.log('✅ Profile updated successfully:', response);
-      setSuccess(true);
-      setProfile(response.data);
-      setIsEditing(false);
-
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Failed to update profile. Please try again.';
-      console.error('❌ Error updating profile:', err);
-      setError(errorMessage);
-    } finally {
-      setIsSaving(false);
+      await saveProfile(profileData);
+    } catch (error) {
+      console.error('Error saving/updating profile:', error);
     }
   };
 
@@ -134,7 +108,7 @@ const Profile = () => {
               <h1 className="text-2xl font-bold">Your Profile</h1>
               <p className="text-muted">Manage your workout preferences</p>
             </div>
-            {!isEditing && (
+            {!isEditing && profile && (
               <Button onClick={() => setIsEditing(true)} variant="ghost">
                 Edit Profile
               </Button>
@@ -145,7 +119,15 @@ const Profile = () => {
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 items-start">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-800 text-sm">{error}</p>
+              <div className="flex-1">
+                <p className="text-red-800 text-sm">{error}</p>
+                <button
+                  onClick={() => clearError()}
+                  className="text-xs text-red-600 hover:underline mt-1"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
 
@@ -159,23 +141,35 @@ const Profile = () => {
             </div>
           )}
 
-          {isEditing ? (
-            <form className="space-y-5">
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p className="text-muted">Loading profile...</p>
+            </div>
+          ) : isEditing && profile ? (
+            <form
+              className="space-y-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveProfile(formData);
+              }}
+            >
               <div className="grid grid-cols-2 gap-4">
                 <Select
                   id="goal"
                   label="Primary Goal"
                   options={goalOptions}
-                  value={formData.goal || ''}
-                  onChange={(e) => updateFormData('goal', e.target.value)}
+                  value={profile.goal || ''}
+                  onChange={(e) => handleFormdataChange('goal', e.target.value)}
                   disabled={isSaving}
                 />
                 <Select
                   id="experience"
                   label="Experience Level"
                   options={experienceOptions}
-                  value={formData.experience || ''}
-                  onChange={(e) => updateFormData('experience', e.target.value)}
+                  value={profile.experience || ''}
+                  onChange={(e) =>
+                    handleFormdataChange('experience', e.target.value)
+                  }
                   disabled={isSaving}
                 />
               </div>
@@ -185,9 +179,9 @@ const Profile = () => {
                   id="days_per_week"
                   label="Days Per Week"
                   options={daysOptions}
-                  value={formData.days_per_week || ''}
+                  value={profile.days_per_week || ''}
                   onChange={(e) =>
-                    updateFormData('days_per_week', e.target.value)
+                    handleFormdataChange('days_per_week', e.target.value)
                   }
                   disabled={isSaving}
                 />
@@ -195,9 +189,9 @@ const Profile = () => {
                   id="session_length"
                   label="Session Length"
                   options={sessionOptions}
-                  value={formData.session_length || ''}
+                  value={profile.session_length || ''}
                   onChange={(e) =>
-                    updateFormData('session_length', e.target.value)
+                    handleFormdataChange('session_length', e.target.value)
                   }
                   disabled={isSaving}
                 />
@@ -207,8 +201,10 @@ const Profile = () => {
                 id="equipment"
                 label="Equipment Available"
                 options={equipmentOptions}
-                value={formData.equipment || ''}
-                onChange={(e) => updateFormData('equipment', e.target.value)}
+                value={profile.equipment || ''}
+                onChange={(e) =>
+                  handleFormdataChange('equipment', e.target.value)
+                }
                 disabled={isSaving}
               />
 
@@ -216,9 +212,9 @@ const Profile = () => {
                 id="preferred_split"
                 label="Preferred Split"
                 options={splitOptions}
-                value={formData.preferred_split || ''}
+                value={profile.preferred_split || ''}
                 onChange={(e) =>
-                  updateFormData('preferred_split', e.target.value)
+                  handleFormdataChange('preferred_split', e.target.value)
                 }
                 disabled={isSaving}
               />
@@ -227,18 +223,15 @@ const Profile = () => {
                 id="injuries"
                 label="Injuries or Limitations (optional)"
                 rows={3}
-                value={formData.injuries || ''}
-                onChange={(e) => updateFormData('injuries', e.target.value)}
+                value={profile.injuries || ''}
+                onChange={(e) =>
+                  handleFormdataChange('injuries', e.target.value)
+                }
                 disabled={isSaving}
               />
 
               <div className="flex gap-3 pt-2">
-                <Button
-                  type="button"
-                  onClick={handleSaveProfile}
-                  disabled={isSaving}
-                  className="flex-1"
-                >
+                <Button type="submit" disabled={isSaving} className="flex-1">
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
                 <Button
@@ -300,7 +293,8 @@ const Profile = () => {
                 </>
               ) : (
                 <p className="text-muted">
-                  No profile data available. Edit to add your preferences.
+                  No profile data available. Complete onboarding to add your
+                  preferences.
                 </p>
               )}
             </div>

@@ -9,8 +9,8 @@ import { apiPost, apiGet } from './client';
 
 const PROFILE_ENDPOINTS = {
   CREATE_OR_UPDATE: '/profile',
-  GET: '/profiles/:id',
-  GET_CURRENT: '/profiles/current',
+  GET: '/profile/:id',
+  GET_CURRENT: '/profile/current',
 } as const;
 
 export interface SaveProfilePayload {
